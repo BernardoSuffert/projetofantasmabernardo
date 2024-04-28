@@ -24,13 +24,6 @@ decadas%>%
   group_by(decada,format)%>%
   summarise(freq=n())
 
-ggplot(banco) +
-  aes(x = date_aired, y = format, group = format, colour = format) +
-  geom_line(size = 1) +
-  geom_point(size = 2) +
-  labs(x = "Ano", y = "Preço") +
-  estat_theme()
-
 trans_decadas <- decadas %>%
   mutate(decada = case_when(
     decada %>% str_detect("Década de 60") ~ "de 60",
@@ -65,3 +58,13 @@ ggplot(trans_decadas) +
   labs(x = "Décadas", y = "Frequência") +
   estat_theme()
 ggsave("colunas-bi-freq.pdf", width = 158, height = 93, units = "mm")
+
+ggplot(trans_decadas) +
+  aes(
+    x = fct_reorder(decada, freq_relativa, .desc = T), y = freq_relativa,
+    fill = format
+  ) +
+  geom_col(position = "fill") +
+  labs(x = "Décadas", y = "Frequência Relativa") +
+  theme_estat()
+ggsave("colunas-bi-freqrelativa.pdf", width = 158, height = 93, units = "mm")
