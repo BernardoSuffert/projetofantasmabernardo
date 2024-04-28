@@ -20,6 +20,7 @@ decadas<- decadas%>%
     TRUE ~ "Década de 2020"
   ))
 
+
 decadas%>%
   group_by(decada,format)%>%
   summarise(freq=n())
