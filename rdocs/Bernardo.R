@@ -165,3 +165,73 @@ print_quadro_resumo <- function(data, title="Medidas resumo da(o) [nome da vari�
 notas%>%
   group_by(season)%>%
   print_quadro_resumo()
+
+#Análise 3
+
+terreno<-count(banco,setting_terrain)
+terreno <- terreno %>%
+  arrange(desc(n))
+
+ggplot(terreno) +
+  aes(x = fct_reorder(setting_terrain, n, .desc=T), y = n) +
+  geom_bar(stat = "identity", fill = "#A11D21", width = 0.7) + 
+  labs(x = "Terreno", y = "Frequência") +
+  theme_estat()
+ggsave("colunas-uni-freq.pdf", width = 158, height = 93, units = "mm")
+
+terreno<-terreno%>%
+  head(3)
+
+armadilha<-banco%>%
+  select(trap_work_first,setting_terrain)
+armadilha<-armadilha%>%
+  filter(trap_work_first!="")
+armadilha <- armadilha %>%
+  mutate(trap_work_first = case_when(
+    trap_work_first %>% str_detect("True") ~ "Funcionou",
+    trap_work_first %>% str_detect("False") ~ "Não funcionou"
+  )) %>%
+  group_by(setting_terrain,trap_work_first) %>%
+  summarise(freq = n()) %>%
+  mutate(
+    freq_relativa = round(freq/sum(freq)*100,1)
+  )
+armadilha<- armadilha %>%
+  filter(setting_terrain %in% terreno$setting_terrain)
+armadilha<- armadilha%>%
+  rename(Armadilha_funcionou_de_primeira=trap_work_first)
+
+ggplot(armadilha) +
+  aes(
+    x = fct_reorder(setting_terrain, freq_relativa, .desc = F), 
+    y = freq_relativa * 100,  
+    fill = Armadilha_funcionou_de_primeira
+  ) +
+  geom_col(position = "fill") +
+  geom_text(
+    aes(label = paste0(freq_relativa, "%")),
+    position = position_fill(vjust = 0.5), 
+    color = "white", 
+    size = 3, 
+    fontface = "bold"
+  ) +
+  labs(x = "Tipos de Terreno", y = "Porcentagem (%)") +
+  scale_y_continuous(labels = scales::percent_format()) +       
+  theme_estat()
+ggsave("barras-bi-porcentagem.pdf", width = 158, height = 93, units = "mm")
+
+quiquadrado<-banco%>%
+  select(trap_work_first,setting_terrain)%>%
+  filter(trap_work_first!="")%>%
+  filter(setting_terrain %in% terreno$setting_terrain)
+tabelaq<-table(quiquadrado$trap_work_first, quiquadrado$setting_terrain)
+resultado_quiquadrado <- chisq.test(tabelaq)
+print(resultado_quiquadrado)
+quiquadrado1<- resultado_quiquadrado$statistic
+n <- sum(tabelaq)
+r <- nrow(tabelaq)
+c <- ncol(tabelaq)
+
+coef_contingencia <- sqrt(quiquadrado1 / (n * min(r - 1, c - 1)))
+print(coef_contingencia)
+
