@@ -235,3 +235,19 @@ c <- ncol(tabelaq)
 coef_contingencia <- sqrt(quiquadrado1 / (n * min(r - 1, c - 1)))
 print(coef_contingencia)
 
+#Analise 4
+
+engajamento<-banco%>%
+  select(imdb,engagement)
+
+ggplot(engajamento) +
+  aes(x = imdb, y = engagement) +
+  geom_point(colour = "#A11D21", size = 3) +
+  labs(
+    x = "Notas Imdb",
+    y = "Engajamento"
+  ) +
+  theme_estat()
+ggsave("disp_uni.pdf", width = 158, height = 93, units = "mm")
+
+cor(engajamento$imdb,engajamento$engagement,method = "pearson")
