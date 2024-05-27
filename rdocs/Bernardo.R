@@ -2,6 +2,8 @@ banco<-read.csv("D:\\banco_final.csv")
 library(hms)
 library(lubridate)
 library(tidyverse)
+#Análise 1
+
 décadas<- banco%>%
   mutate(Ano=(year(date_aired)))
 decadas<- décadas%>%
@@ -47,29 +49,12 @@ porcentagens <- str_c(trans_decadas$freq_relativa, "%") %>% str_replace("\\.", "
 legendas <- str_squish(str_c(trans_decadas$freq, " (", porcentagens, ")"))
 
 ggplot(trans_decadas) +
-  aes(
-    x = fct_reorder(decada, freq, .desc = T), y = freq,
-    fill = format, label = legendas
-  ) +
-  geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
-  geom_text(
-    position = position_dodge(width = .9),
-    vjust = -0.5, hjust = 0.5,
-    size = 3
-  ) +
+  aes(x = decada, y = freq, group = format, colour = format) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
   labs(x = "Décadas", y = "Frequência") +
-  estat_theme()
-ggsave("colunas-bi-freq.pdf", width = 158, height = 93, units = "mm")
-
-ggplot(trans_decadas) +
-  aes(
-    x = fct_reorder(decada, freq_relativa, .desc = T), y = freq_relativa,
-    fill = format
-  ) +
-  geom_col(position = "fill") +
-  labs(x = "Décadas", y = "Frequência Relativa") +
   theme_estat()
-ggsave("colunas-bi-freqrelativa.pdf", width = 158, height = 93, units = "mm")
+ggsave("linhadecadas.pdf", width = 158, height = 93, units = "mm")
 
 #Análise 2
 notas<-banco%>%
