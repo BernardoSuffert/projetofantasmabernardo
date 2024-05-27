@@ -170,16 +170,7 @@ notas%>%
 
 terreno<-count(banco,setting_terrain)
 terreno <- terreno %>%
-  arrange(desc(n))
-
-ggplot(terreno) +
-  aes(x = fct_reorder(setting_terrain, n, .desc=T), y = n) +
-  geom_bar(stat = "identity", fill = "#A11D21", width = 0.7) + 
-  labs(x = "Terreno", y = "Frequência") +
-  theme_estat()
-ggsave("colunas-uni-freq.pdf", width = 158, height = 93, units = "mm")
-
-terreno<-terreno%>%
+  arrange(desc(n))%>%
   head(3)
 
 armadilha<-banco%>%
@@ -200,25 +191,31 @@ armadilha<- armadilha %>%
   filter(setting_terrain %in% terreno$setting_terrain)
 armadilha<- armadilha%>%
   rename(Armadilha_funcionou_de_primeira=trap_work_first)
+armadilha <- armadilha %>%
+  mutate(setting_terrain = case_when(
+    setting_terrain %>% str_detect("Forest") ~ "Floresta",
+    setting_terrain %>% str_detect("Rural") ~ "Rural",
+    setting_terrain %>% str_detect("Urban") ~ "Urbano"
+  ))
+
+porcentagens <- str_c(armadilha$freq_relativa, "%") %>% str_replace("\\.", ",")
+
+legendas <- str_squish(str_c(armadilha$freq, " (", porcentagens, ")"))
 
 ggplot(armadilha) +
   aes(
-    x = fct_reorder(setting_terrain, freq_relativa, .desc = F), 
-    y = freq_relativa * 100,  
-    fill = Armadilha_funcionou_de_primeira
+    x = fct_reorder(setting_terrain, freq, .desc = T), y = freq,
+    fill = Armadilha_funcionou_de_primeira, label = legendas
   ) +
-  geom_col(position = "fill") +
+  geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
   geom_text(
-    aes(label = paste0(freq_relativa, "%")),
-    position = position_fill(vjust = 0.5), 
-    color = "white", 
-    size = 3, 
-    fontface = "bold"
+    position = position_dodge(width = .9),
+    vjust = -0.5, hjust = 0.5,
+    size = 3
   ) +
-  labs(x = "Tipos de Terreno", y = "Porcentagem (%)") +
-  scale_y_continuous(labels = scales::percent_format()) +       
+  labs(x = "Tipos de Terreno", y = "Frequência") +
   theme_estat()
-ggsave("barras-bi-porcentagem.pdf", width = 158, height = 93, units = "mm")
+ggsave("colunas-bi-freqterreno.pdf", width = 158, height = 93, units = "mm")
 
 quiquadrado<-banco%>%
   select(trap_work_first,setting_terrain)%>%
@@ -251,3 +248,56 @@ ggplot(engajamento) +
 ggsave("disp_uni.pdf", width = 158, height = 93, units = "mm")
 
 cor(engajamento$imdb,engajamento$engagement,method = "pearson")
+
+engajamento %>%
+  print_quadro_resumo(var_name = "engagement")
+
+engajamento %>%
+  print_quadro_resumo(var_name = "imdb")
+var(engajamento$engagement)
+
+#Analise 5
+
+capturados<-banco%>%
+  select(engagement,caught_fred,caught_daphnie,caught_velma,caught_shaggy,caught_scooby)
+
+c <- capturados %>%
+  mutate(row = row_number()) %>%
+  pivot_longer(
+    cols = starts_with("caught"),
+    names_to = "character",
+    values_to = "caught"
+  ) %>%
+  filter(caught == "True") %>%
+  mutate(character = case_when(
+    character == "caught_fred" ~ "Fred",
+    character == "caught_daphnie" ~ "Daphnie",
+    character == "caught_velma" ~ "Velma",
+    character == "caught_shaggy" ~ "Shaggy",
+    character == "caught_scooby" ~ "Scooby"
+  ))
+
+scooby_doo_data_summarized <- c %>%
+  group_by(row) %>%
+  summarise(caught_by = paste(character, collapse = ", "))
+
+c <- c %>%
+  mutate(row = row_number()) %>%
+  left_join(scooby_doo_data_summarized, by = "row") %>%
+  select(-row)
+
+
+
+ggplot(c) +
+  aes(x = reorder(character, engagement, FUN = median), y = engagement) +
+  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "Personagens", y = "Engajamento") +
+  theme_estat()
+ggsave("capturados.pdf", width = 158, height = 93, units = "mm")
+
+c %>%
+  group_by(character)%>%
+  print_quadro_resumo(var_name = "engagement")
