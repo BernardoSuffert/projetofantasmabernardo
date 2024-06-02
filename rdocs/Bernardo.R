@@ -13,32 +13,40 @@ decadas<- decadas%>%
 
 decadas<- decadas%>%
   mutate(decada = case_when(
-    between(Ano, 1961, 1970) ~ "Década de 60",
-    between(Ano, 1971, 1980) ~ "Década de 70",
-    between(Ano, 1981, 1990) ~ "Década de 80",
-    between(Ano, 1991, 2000) ~ "Década de 90",
-    between(Ano, 2001, 2010) ~ "Década de 2000",
-    between(Ano, 2011, 2020) ~ "Década de 2010",
+    between(Ano, 1960, 1969) ~ "Década de 60",
+    between(Ano, 1970, 1979) ~ "Década de 70",
+    between(Ano, 1980, 1989) ~ "Década de 80",
+    between(Ano, 1990, 1999) ~ "Década de 90",
+    between(Ano, 2000, 2009) ~ "Década de 2000",
+    between(Ano, 2010, 2019) ~ "Década de 2010",
     TRUE ~ "Década de 2020"
   ))
 
+decadas<- decadas%>%
+  rename(Formato=format)
+decadas <- decadas %>%
+  mutate(Formato = case_when(
+    Formato %>% str_detect("CrossOver") ~ "CrossOver",
+    Formato %>% str_detect("Movie") ~ "Filme",
+    Formato %>% str_detect("Serie") ~ "Série"
+  ))
 
 
 decadas%>%
-  group_by(decada,format)%>%
+  group_by(decada,Formato)%>%
   summarise(freq=n())
 
 trans_decadas <- decadas %>%
   mutate(decada = case_when(
-    decada %>% str_detect("Década de 60") ~ "de 60",
-    decada %>% str_detect("Década de 70") ~ "de 70",
-    decada %>% str_detect("Década de 80") ~ "de 80",
-    decada %>% str_detect("Década de 90") ~ " de 90",
-    decada %>% str_detect("Década de 2000") ~ " de 2000",
-    decada %>% str_detect("Década de 2010") ~ " de 2010",
-    decada %>% str_detect("Década de 2020") ~ " de 2020"
+    decada %>% str_detect("Década de 60") ~ "60",
+    decada %>% str_detect("Década de 70") ~ "70",
+    decada %>% str_detect("Década de 80") ~ "80",
+    decada %>% str_detect("Década de 90") ~ "90",
+    decada %>% str_detect("Década de 2000") ~ "2000",
+    decada %>% str_detect("Década de 2010") ~ "2010",
+    decada %>% str_detect("Década de 2020") ~ "2020"
   )) %>%
-  group_by(decada, format) %>%
+  group_by(decada, Formato) %>%
   summarise(freq = n()) %>%
   mutate(
     freq_relativa = round(freq / sum(freq) * 100,1)
@@ -48,8 +56,11 @@ porcentagens <- str_c(trans_decadas$freq_relativa, "%") %>% str_replace("\\.", "
 
 legendas <- str_squish(str_c(trans_decadas$freq, " (", porcentagens, ")"))
 
+trans_decadas$decada<-factor(trans_decadas$decada,levels = c("60","70","80","90","2000","2010","2020"))
+levels(trans_decadas$decada)
+
 ggplot(trans_decadas) +
-  aes(x = decada, y = freq, group = format, colour = format) +
+  aes(x = decada, y = freq, group = Formato, colour = Formato) +
   geom_line(size = 1) +
   geom_point(size = 2) +
   labs(x = "Décadas", y = "Frequência") +
@@ -175,7 +186,7 @@ armadilha <- armadilha %>%
 armadilha<- armadilha %>%
   filter(setting_terrain %in% terreno$setting_terrain)
 armadilha<- armadilha%>%
-  rename(Armadilha_funcionou_de_primeira=trap_work_first)
+  rename(Armadilha=trap_work_first)
 armadilha <- armadilha %>%
   mutate(setting_terrain = case_when(
     setting_terrain %>% str_detect("Forest") ~ "Floresta",
@@ -190,7 +201,7 @@ legendas <- str_squish(str_c(armadilha$freq, " (", porcentagens, ")"))
 ggplot(armadilha) +
   aes(
     x = fct_reorder(setting_terrain, freq, .desc = T), y = freq,
-    fill = Armadilha_funcionou_de_primeira, label = legendas
+    fill = Armadilha, label = legendas
   ) +
   geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
   geom_text(
@@ -217,6 +228,10 @@ c <- ncol(tabelaq)
 coef_contingencia <- sqrt(quiquadrado1 / (n * min(r - 1, c - 1)))
 print(coef_contingencia)
 
+df <- (r - 1) * (c - 1)
+coef_contingencia_ajustado <- coef_contingencia / sqrt(1 - coef_contingencia^2 / df)
+print(coef_contingencia_ajustado)
+
 #Analise 4
 
 engajamento<-banco%>%
@@ -224,7 +239,7 @@ engajamento<-banco%>%
 
 ggplot(engajamento) +
   aes(x = imdb, y = engagement) +
-  geom_point(colour = "#A11D21", size = 3) +
+  geom_point(alpha=0.5,colour = "#A11D21", size = 3) +
   labs(
     x = "Notas Imdb",
     y = "Engajamento"
@@ -244,7 +259,7 @@ var(engajamento$engagement)
 #Analise 5
 
 capturados<-banco%>%
-  select(engagement,caught_fred,caught_daphnie,caught_velma,caught_shaggy,caught_scooby)
+  select(engagement,caught_fred,caught_daphnie,caught_velma,caught_shaggy,caught_scooby,caught_other,caught_not)
 
 c <- capturados %>%
   mutate(row = row_number()) %>%
@@ -258,9 +273,11 @@ c <- capturados %>%
     character == "caught_fred" ~ "Fred",
     character == "caught_daphnie" ~ "Daphnie",
     character == "caught_velma" ~ "Velma",
-    character == "caught_shaggy" ~ "Shaggy",
-    character == "caught_scooby" ~ "Scooby"
-  ))
+    character == "caught_shaggy" ~ "Salsicha",
+    character == "caught_scooby" ~ "Scooby",
+    character == "caught_other" ~ "Outros",
+    character == "caught_not" ~ "Nenhum"
+    ))
 
 scooby_doo_data_summarized <- c %>%
   group_by(row) %>%
